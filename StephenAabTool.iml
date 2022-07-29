@@ -10,7 +10,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/src/assets/gson-2.8.2.jar!/" />
+          <root url="jar://$MODULE_DIR$/src/assets/json-20220320.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

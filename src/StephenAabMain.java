@@ -1,50 +1,53 @@
-import com.google.gson.Gson;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Timer;
-import java.util.TimerTask;
 
 //aab包安装器主界面;author:Stephen
 public class StephenAabMain extends JFrame {
+    private String GetJksContentUrl = "http://172.30.2.27:5000/getJksContent";
     private boolean isWinOs = false;
     private String osFolderName;
     private String rootSrcPathStr;
     private String rootAssetsPathStr;
     private String rootFolderPathStr;
-    private String defaultAdbPathStr;
+    private String builtInAdbPathStr;
     private String aabPathStr;
     private String apksPathStr;
     private String jksPathStr;
+    private JRadioButton radioForBuiltInAdb, radioForSysAdb, radioForCustomizeAdb;
     private JTabbedPane tabBarPane;
     private JTextField labelForJksResult;
     private JTextField inputForJksPwd, inputForJksAlias, inputForJksAliasPwd, inputForJksAdb;
-    private String adbPathStr;
     private JTextArea textAreaForLog;
-
+    private ButtonGroup btnGroupForJunYun;
     private String aabName = null;
+    private ArrayList<EntityForJksBean> entityForJksBeanArrayList = new ArrayList<>();
+    private EntityForJksBean useJksBean = new EntityForJksBean();
 
     public StephenAabMain() {
         String rootPathStr = System.getProperty("user.dir");
         String os = System.getProperty("os.name");
         isWinOs = (os != null && os.toLowerCase().contains("windows"));
-        System.out.println("====rootPathStr====>"+rootPathStr+"===os==>"+os);
+        System.out.println("====rootPathStr=======>"+rootPathStr+"===os==>"+os);
         osFolderName = isWinOs ? "Windows" : "MacLinux";
         rootSrcPathStr = rootPathStr+(rootPathStr.endsWith(File.separator) ? "" : File.separator)+"src"+File.separator;
         rootAssetsPathStr = rootSrcPathStr+"assets"+File.separator;
         rootFolderPathStr = rootSrcPathStr+"StephenAppBundleInstaller"+File.separator;
-        defaultAdbPathStr = rootFolderPathStr+osFolderName+File.separator+"adb-tool"+File.separator+(isWinOs ? "adb.exe" : "adb");
+        builtInAdbPathStr = rootFolderPathStr+osFolderName+File.separator+"adb-tool"+File.separator+(isWinOs ? "adb.exe" : "adb");
 
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 
@@ -76,9 +79,12 @@ public class StephenAabMain extends JFrame {
         boxForAab.add(btnForAab);
         boxForAab.add(Box.createHorizontalStrut(8));
         boxForAab.add(labelForAabResult);
+        JPanel aabForPanel = new JPanel();
+        aabForPanel.setBackground(Color.ORANGE);
+        aabForPanel.add(boxForAab);
 
-        FileDialog fdForApks = new FileDialog(this, "选择输出Apks包目录", FileDialog.SAVE);
-        JLabel labelForApks = new JLabel("选择输出Apks包目录:");
+        FileDialog fdForApks = new FileDialog(this, "选择中间临时文件输出目录", FileDialog.SAVE);
+        JLabel labelForApks = new JLabel("选择临时文件Tmp目录:");
         JButton btnForApks = new JButton("选择");
         JTextField labelForApksResult = new JTextField("", 40);
         labelForApksResult.setEnabled(false);
@@ -98,12 +104,15 @@ public class StephenAabMain extends JFrame {
         boxForApks.add(btnForApks);
         boxForApks.add(Box.createHorizontalStrut(8));
         boxForApks.add(labelForApksResult);
+        JPanel apksForPanel = new JPanel();
+        apksForPanel.setBackground(Color.ORANGE);
+        apksForPanel.add(boxForApks);
 
         tabBarPane = new JTabbedPane();
         tabBarPane.setForeground(Color.BLACK);
         tabBarPane.addTab("自定义解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_custom.png"), createJksComponent());
-        tabBarPane.addTab("奇游解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_junyun.png"), createJunYunComponent());
-        tabBarPane.setSelectedIndex(1);
+        tabBarPane.addTab("俊云快速解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_junyun.png"), createJunYunComponent());
+        tabBarPane.setSelectedIndex(0);
 
         Box boxForExecute = Box.createHorizontalBox();
         JButton btnForClear = new JButton("重置所有内容", new ImageIcon(rootAssetsPathStr+"icon_clear.png"));
@@ -117,15 +126,23 @@ public class StephenAabMain extends JFrame {
             inputForJksPwd.setText("");
             inputForJksAlias.setText("");
             inputForJksAliasPwd.setText("");
-            adbPathStr = null;
             inputForJksAdb.setText("");
-            textAreaForLog.setText("等待操作中...\n");
+            textAreaForLog.setText("打印日志处,等待操作中...\n");
             JOptionPane.showMessageDialog(null, "重置完成!", "提示", JOptionPane.INFORMATION_MESSAGE);
         });
         boxForExecute.add(btnForClear);
         boxForExecute.add(Box.createHorizontalStrut(8));
         JButton btnForStart = new JButton("开始执行安装", new ImageIcon(rootAssetsPathStr+"icon_install.png"));
         btnForStart.addActionListener(e -> {
+            textAreaForLog.setText("开始执行中...\n");
+            if(radioForCustomizeAdb.isSelected() && isStrEmpty(inputForJksAdb.getText())){
+                JOptionPane.showMessageDialog(null, "请选择精确的可用的adb路径", "提示", JOptionPane.WARNING_MESSAGE);
+                return;
+            }//end of if
+            if(!checkAdbSourceAvailable(false)){
+                JOptionPane.showMessageDialog(null, "你选择的adb经测试不可用,请先确认或切换", "提示", JOptionPane.WARNING_MESSAGE);
+                return;
+            }//end of if
             if(isStrEmpty(aabPathStr)){
                 JOptionPane.showMessageDialog(null, "请选择待安装Aab包路径", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
@@ -134,28 +151,52 @@ public class StephenAabMain extends JFrame {
                 JOptionPane.showMessageDialog(null, "请选择输出Apks包目录", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }//end of if
-            if(isStrEmpty(jksPathStr)){
-                JOptionPane.showMessageDialog(null, "请选择签名文件Jks路径", "提示", JOptionPane.WARNING_MESSAGE);
-                return;
-            }//end of if
-            if(isStrEmpty(inputForJksPwd.getText())){
-                JOptionPane.showMessageDialog(null, "请输入签名文件Jks密码", "提示", JOptionPane.WARNING_MESSAGE);
-                return;
-            }//end of if
-            if(isStrEmpty(inputForJksAlias.getText())){
-                JOptionPane.showMessageDialog(null, "请输入签名文件Jks别名", "提示", JOptionPane.WARNING_MESSAGE);
-                return;
-            }//end of if
-            if(isStrEmpty(inputForJksAliasPwd.getText())){
-                JOptionPane.showMessageDialog(null, "请输入签名文件Jks别名密码", "提示", JOptionPane.WARNING_MESSAGE);
-                return;
+            if(0 == tabBarPane.getSelectedIndex()){
+                if(isStrEmpty(jksPathStr)){
+                    JOptionPane.showMessageDialog(null, "请选择签名文件Jks路径", "提示", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }//end of if
+                if(isStrEmpty(inputForJksPwd.getText())){
+                    JOptionPane.showMessageDialog(null, "请输入签名文件Jks密码", "提示", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }//end of if
+                if(isStrEmpty(inputForJksAlias.getText())){
+                    JOptionPane.showMessageDialog(null, "请输入签名文件Jks别名", "提示", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }//end of if
+                if(isStrEmpty(inputForJksAliasPwd.getText())){
+                    JOptionPane.showMessageDialog(null, "请输入签名文件Jks别名密码", "提示", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }//end of if
+                useJksBean.jksFilePath = jksPathStr;
+                useJksBean.jksFilePwd = inputForJksPwd.getText();
+                useJksBean.jksAlias = inputForJksAlias.getText();
+                useJksBean.jksAliasPwd = inputForJksAliasPwd.getText();
+            }else if(1 == tabBarPane.getSelectedIndex()){
+                int curSelectJksIndex = getCustomizeJksSelectIndex();
+                if(curSelectJksIndex < 0){
+                    JOptionPane.showMessageDialog(null, "请先成功获取签名文件然后选择一个签名文件", "提示", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }//end of if
+                String saveJksPath = apksPathStr+(apksPathStr.endsWith(File.separator) ? "" : File.separator)+"selectJks.jks";
+                (new File(saveJksPath)).delete();
+                EntityForJksBean originUseJksBean = entityForJksBeanArrayList.get(curSelectJksIndex);
+                downloadForUrl(originUseJksBean.jksFilePath, saveJksPath);
+                if(!(new File(saveJksPath)).exists()){
+                    JOptionPane.showMessageDialog(null, "签名文件不存在,请重试!", "提示", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }//end of if
+                useJksBean.jksFilePath = saveJksPath;
+                useJksBean.jksFilePwd = originUseJksBean.jksFilePwd;
+                useJksBean.jksAlias = originUseJksBean.jksAlias;
+                useJksBean.jksAliasPwd = originUseJksBean.jksAliasPwd;
             }//end of if
             sureStartExecute();
         });
         boxForExecute.add(btnForStart);
 
         Box boxForLog = Box.createHorizontalBox();
-        textAreaForLog = new JTextArea("等待操作中...\n", 20, 10);
+        textAreaForLog = new JTextArea("打印日志处,等待操作中...\n", 20, 10);
         textAreaForLog.setBackground(Color.BLACK);
         textAreaForLog.setLineWrap(true);
         textAreaForLog.setForeground(Color.WHITE);
@@ -167,14 +208,15 @@ public class StephenAabMain extends JFrame {
 
         Box baseBox = Box.createVerticalBox();
         baseBox.add(createTextPanel("Qy Google Aab Package Quick Installer", 30));
+        baseBox.add(Box.createVerticalStrut(2));
+        baseBox.add(createTextPanel("请先确保手机已经打开[开发者模式]->[调试模式],并且已经连接电脑成功!", 12));
+        baseBox.add(Box.createVerticalStrut(15));
+        baseBox.add(createAdbComponent());
         baseBox.add(Box.createVerticalStrut(10));
-        baseBox.add(boxForAab);
-        baseBox.add(Box.createVerticalStrut(5));
-        baseBox.add(boxForApks);
+        baseBox.add(aabForPanel);
+        baseBox.add(apksForPanel);
         baseBox.add(Box.createVerticalStrut(5));
         baseBox.add(tabBarPane);
-        baseBox.add(Box.createVerticalStrut(10));
-        baseBox.add(createAdbComponent());
         baseBox.add(Box.createVerticalStrut(5));
         baseBox.add(boxForExecute);
         baseBox.add(Box.createVerticalStrut(5));
@@ -188,15 +230,6 @@ public class StephenAabMain extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
         setVisible(true);
-
-        //init test
-        aabName = "sixMill_google.aab";
-        aabPathStr = "/Users/stephen/Downloads/sixMill_google.aab";
-        apksPathStr = "/Users/stephen/Downloads/Vicky/Untitled";
-        jksPathStr = "/Users/stephen/Documents/AndroidProjects/qeeyou_accelerator_android_overseas/app/overseas_key.jks";
-        inputForJksPwd.setText("123456");
-        inputForJksAlias.setText("mobile");
-        inputForJksAliasPwd.setText("123456");
     }
 
     private JComponent createTextPanel(String text, int textSize) {
@@ -206,6 +239,92 @@ public class StephenAabMain extends JFrame {
         label.setHorizontalAlignment(SwingConstants.CENTER);
         panel.add(label);
         return panel;
+    }
+
+    private JComponent createAdbComponent(){
+        FileDialog fdForAdb = new FileDialog(this, "选择精确的Adb命令文件路径", FileDialog.LOAD);
+        fdForAdb.setFilenameFilter((dir, name) -> name.equals("adb"));
+        JLabel labelForAdb = new JLabel("选择或输入Adb命令路径:");
+        JButton btnForAdb = new JButton("选择");
+        btnForAdb.addActionListener(e -> {
+            fdForAdb.setVisible(true);
+            if(isStrNotEmpty(fdForAdb.getDirectory()) && isStrNotEmpty(fdForAdb.getFile())){
+                String adbPathStr = fdForAdb.getDirectory()+fdForAdb.getFile();
+                textAreaForLog.append("==============选择的Adb执行路径===>"+adbPathStr+"\n");
+                inputForJksAdb.setText(adbPathStr);
+            }else{
+                String adbPathStr = inputForJksAdb.getText();
+                textAreaForLog.append("==============复用的上传选择的Adb执行路径===>"+adbPathStr+"\n");
+                inputForJksAdb.setText(isStrNotEmpty(adbPathStr) ? adbPathStr : "");
+            }
+        });
+        inputForJksAdb = new JTextField(40);
+        Box boxForAdb = Box.createHorizontalBox();
+        boxForAdb.add(labelForAdb);
+        boxForAdb.add(Box.createHorizontalStrut(8));
+        boxForAdb.add(btnForAdb);
+        boxForAdb.add(Box.createHorizontalStrut(8));
+        boxForAdb.add(inputForJksAdb);
+
+        JLabel labelForAdbHint = new JLabel("为避免后续流程安装中断,可点击右边的测试按钮检测你现在选择来源的adb是否可用");
+        JButton btnForAdbTest = new JButton("点我可测试Adb可用性");
+        btnForAdbTest.addActionListener(e -> {
+            if(radioForCustomizeAdb.isSelected() && isStrEmpty(inputForJksAdb.getText())){
+                JOptionPane.showMessageDialog(null, "请选择精确的adb路径", "提示", JOptionPane.WARNING_MESSAGE);
+                return;
+            }//end of if
+            checkAdbSourceAvailable(true);
+        });
+        Box boxForAdbHint = Box.createHorizontalBox();
+        boxForAdbHint.add(labelForAdbHint);
+        boxForAdbHint.add(Box.createHorizontalStrut(8));
+        boxForAdbHint.add(btnForAdbTest);
+
+        JPanel adbForPanel = new JPanel();
+        adbForPanel.setBackground(Color.pink);
+        adbForPanel.add(boxForAdb);
+        JPanel adbHintForPanel = new JPanel();
+        adbHintForPanel.setBackground(Color.pink);
+        adbHintForPanel.add(boxForAdbHint);
+
+        JLabel boxForAdbHint2 = new JLabel("注:adb文件路径是在AndroidSdk的platform-tools目录下,e.g.:/Users/stephen/Library/Android/sdk/platform-tools/adb");
+        JPanel adbHint2ForPanel = new JPanel();
+        adbHint2ForPanel.setBackground(Color.pink);
+        adbHint2ForPanel.add(boxForAdbHint2);
+        bindJLabelCopyFun(boxForAdbHint2);
+
+        JPanel panelForAdbSource = new JPanel();
+        panelForAdbSource.setBackground(Color.pink);
+        JLabel labelForHint = new JLabel("请选择安装adb使用来源:");
+        radioForBuiltInAdb = new JRadioButton("本软件内建Adb");
+        radioForSysAdb = new JRadioButton("本机系统环境Adb");
+        radioForCustomizeAdb = new JRadioButton("自定义设置Adb");
+        ButtonGroup adbSourceGroup = new ButtonGroup();
+        adbSourceGroup.add(radioForBuiltInAdb);
+        adbSourceGroup.add(radioForSysAdb);
+        adbSourceGroup.add(radioForCustomizeAdb);
+        radioForBuiltInAdb.setSelected(true);
+        panelForAdbSource.add(labelForHint);
+        panelForAdbSource.add(radioForBuiltInAdb);
+        panelForAdbSource.add(radioForSysAdb);
+        panelForAdbSource.add(radioForCustomizeAdb);
+        ActionListener actionListener = e -> {
+            adbForPanel.setVisible(e.getSource() == radioForCustomizeAdb);
+            adbHint2ForPanel.setVisible(e.getSource() == radioForCustomizeAdb);
+        };
+        radioForBuiltInAdb.addActionListener(actionListener);
+        radioForSysAdb.addActionListener(actionListener);
+        radioForCustomizeAdb.addActionListener(actionListener);
+
+        Box baseBox = Box.createVerticalBox();
+        baseBox.add(panelForAdbSource);
+        baseBox.add(adbForPanel);
+        baseBox.add(adbHint2ForPanel);
+        baseBox.add(adbHintForPanel);
+
+        adbForPanel.setVisible(false);
+        adbHint2ForPanel.setVisible(false);
+        return baseBox;
     }
     private JComponent createJksComponent() {
         FileDialog fdForJks = new FileDialog(this, "选择签名文件Jks路径", FileDialog.LOAD);
@@ -267,7 +386,7 @@ public class StephenAabMain extends JFrame {
     private JComponent createJunYunComponent() {
         JLabel labelForJunYun = new JLabel("请在后面输入认证码获取俊云产品签名:");
         JButton btnForJunYun = new JButton("获取");
-        JTextField labelForJunYunRwd = new JTextField("GetJunYunJksFileConfig",40);
+        JTextField labelForJunYunRwd = new JTextField(40);
         labelForJunYunRwd.setEnabled(true);
 
         Box boxForJunYun = Box.createHorizontalBox();
@@ -277,48 +396,60 @@ public class StephenAabMain extends JFrame {
         boxForJunYun.add(Box.createHorizontalStrut(8));
         boxForJunYun.add(labelForJunYunRwd);
 
-        JLabel labelForJunYunHint = new JLabel("请点击按钮获取中,获取成功下面将展示俊云产品签名数据");
+        JLabel labelForJunYunHint = new JLabel("请点击按钮获取,获取成功下面区域将展示俊云产品签名数据,然后就可以选择啦!");
         Box boxForJunYunHint = Box.createHorizontalBox();
         boxForJunYunHint.add(labelForJunYunHint);
 
         JPanel panelForJunYun = new JPanel();
-        JLabel labelForHint = new JLabel("请选择产品签名:");
-        JRadioButton radioBtn01 = new JRadioButton("男");
-        JRadioButton radioBtn02 = new JRadioButton("女");
-        ButtonGroup btnGroup = new ButtonGroup();
-        btnGroup.add(radioBtn01);
-        btnGroup.add(radioBtn02);
-        radioBtn01.setSelected(true);
-        panelForJunYun.add(labelForHint);
-        panelForJunYun.add(radioBtn01);
-        panelForJunYun.add(radioBtn02);
-
         btnForJunYun.addActionListener(e -> {
             if(isStrEmpty(labelForJunYunRwd.getText())){
                 JOptionPane.showMessageDialog(null, "请先输入俊云认证码", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }//end of if
+            btnGroupForJunYun = null;
+            panelForJunYun.removeAll();
+            panelForJunYun.setVisible(false);
+            entityForJksBeanArrayList.clear();
             labelForJunYunHint.setText("获取俊云产品签名数据中,请稍后");
-            String httpRetInfo = httpGetRequest("http://172.30.2.27:5000/getJksContent", new HashMap<>(){{
+            String httpRetInfo = httpGetRequest(GetJksContentUrl, new HashMap<>(){{
                 put("authPwdCode", labelForJunYunRwd.getText());
             }});
             textAreaForLog.append("==============获取俊云产品签名数据===>"+httpRetInfo+"\n");
             if(isStrEmpty(httpRetInfo)){
                 labelForJunYunHint.setText("获取俊云产品签名数据为空,请重试");
             }else{
-                HttpResponseBean httpResponseBean = (new Gson()).fromJson(httpRetInfo, HttpResponseBean.class);
-                if(null != httpResponseBean){
-                    if(httpResponseBean.isSuccess && isStrNotEmpty(httpResponseBean.dataInfo)){
-                        if(isStrNotEmpty(httpResponseBean.dataInfo)){
-                            /*for (int i = 0; i < jsonArray.size(); i++) {
-                                JSONObject jsonObject = jsonArray.getJSONObject(i);
-                            }*/
-                            labelForJunYunHint.setText("获取俊云产品签名数据完成,请选择"+httpResponseBean.dataInfo);
+                JSONObject jsonObject = new JSONObject(httpRetInfo);
+                if(null != jsonObject){
+                    if(jsonObject.has("isSuccess")){
+                        JSONArray jsonArray = jsonObject.has("dataInfo") ? jsonObject.getJSONArray("dataInfo") : null;
+                        if(null != jsonArray && jsonArray.length() > 0){
+                            btnGroupForJunYun = new ButtonGroup();
+                            int addOkNum = 0;
+                            for (int i = 0; i < jsonArray.length(); i++) {
+                                JSONObject jsonObjectForJsk = jsonArray.getJSONObject(i);
+                                if(null != jsonObjectForJsk){
+                                    JRadioButton radioBtnForJks = new JRadioButton(jsonObjectForJsk.getString("jksName"));
+                                    btnGroupForJunYun.add(radioBtnForJks);
+                                    radioBtnForJks.setSelected(0 == i);
+                                    panelForJunYun.add(radioBtnForJks);
+                                    entityForJksBeanArrayList.add(new EntityForJksBean(jsonObjectForJsk.getString("jksName"),
+                                            jsonObjectForJsk.getString("jksFilePath") ,jsonObjectForJsk.getString("jksFilePwd"),
+                                            jsonObjectForJsk.getString("jksAlias"), jsonObjectForJsk.getString("jksAliasPwd")));
+                                    addOkNum++;
+                                }//end of if
+                            }
+                            if(addOkNum > 0){
+                                labelForJunYunHint.setText("获取俊云产品签名成功,共"+addOkNum+"款,请选择!");
+                                panelForJunYun.add(new JLabel("请选择产品签名:"), 0);
+                                panelForJunYun.setVisible(true);
+                            }else{
+                                labelForJunYunHint.setText("解析返回的俊云产品签名为空!");
+                            }
                         }else{
-                            labelForJunYunHint.setText("获取俊云产品签名数据失败,请重试");
+                            labelForJunYunHint.setText("获取返回的俊云产品签名为空!");
                         }
                     }else{
-                        labelForJunYunHint.setText("获取俊云产品签名返回数据失败,"+(isStrNotEmpty(httpResponseBean.dataInfo) ? httpResponseBean.dataInfo : "请重试"));
+                        labelForJunYunHint.setText("获取俊云产品签名返回数据失败,"+(jsonObject.has("dataInfo") ? jsonObject.getString("dataInfo") : "请重试"));
                     }
                 }else{
                     labelForJunYunHint.setText("获取俊云产品签名返回数据为空,请重试");
@@ -334,135 +465,108 @@ public class StephenAabMain extends JFrame {
         baseBox.add(Box.createVerticalStrut(10));
         baseBox.add(panelForJunYun);
         baseBox.add(Box.createVerticalStrut(10));
+
+        panelForJunYun.setVisible(false);
         return baseBox;
     }
 
-    private JComponent createAdbComponent(){
-        FileDialog fdForAdb = new FileDialog(this, "选择精确的Adb命令文件路径", FileDialog.LOAD);
-        fdForAdb.setFilenameFilter((dir, name) -> name.equals("adb"));
-        JLabel labelForAdb = new JLabel("选择或输入Adb命令路径:");
-        JButton btnForAdb = new JButton("选择");
-        btnForAdb.addActionListener(e -> {
-            fdForAdb.setVisible(true);
-            if(isStrNotEmpty(fdForAdb.getDirectory()) && isStrNotEmpty(fdForAdb.getFile())){
-                adbPathStr = fdForAdb.getDirectory()+fdForAdb.getFile();
-                textAreaForLog.append("==============选择的Adb执行路径===>"+adbPathStr+"\n");
-                inputForJksAdb.setText(adbPathStr);
-            }else{
-                inputForJksAdb.setText(isStrNotEmpty(adbPathStr) ? adbPathStr : "");
-            }
-        });
-        inputForJksAdb = new JTextField(40);
-        Box boxForAdb = Box.createHorizontalBox();
-        boxForAdb.add(labelForAdb);
-        boxForAdb.add(Box.createHorizontalStrut(8));
-        boxForAdb.add(btnForAdb);
-        boxForAdb.add(Box.createHorizontalStrut(8));
-        boxForAdb.add(inputForJksAdb);
+    private int getCustomizeJksSelectIndex(){
+        int tmpIndex = -1, curIndex = -1;
+        if(null == btnGroupForJunYun)return curIndex;
+        Enumeration<AbstractButton> enumeration = btnGroupForJunYun.getElements();
+        while (enumeration.hasMoreElements()){
+            if(tmpIndex < 0)tmpIndex = 0;
+            JRadioButton radioBtnForJks = (JRadioButton)enumeration.nextElement();
+            if(radioBtnForJks.isSelected())curIndex = tmpIndex;
+            textAreaForLog.append("=====radioBtnForJks===tmpIndex:"+tmpIndex+"===curIndex:"+curIndex+"==>"+radioBtnForJks.isSelected()+"\n");
+            tmpIndex++;
+        }
+        return curIndex;
+    }
 
-        JLabel labelForAdbHint = new JLabel("可点击右边的测试按钮检测你现在环境的adb(或你上面输入框adb路径)是否可用");
-        JButton btnForAdbTest = new JButton("测试");
-        btnForAdbTest.addActionListener(e -> {
-            //tabBarPane.addTab("Tab02", new ImageIcon("bb.jpg"), createTextPanel("TAB 02", 20));
-            //tabBarPane.addTab("Tab03", new ImageIcon("bb.jpg"), createTextPanel("TAB 03", 20), "This is a tab.");
-            adbPathStr = inputForJksAdb.getText();
-            boolean adbTestResult = execProcessBuilder(isStrNotEmpty(adbPathStr) ? adbPathStr : defaultAdbPathStr, "version");
-            textAreaForLog.append("==========adb测试结果=======>"+adbTestResult);
-            JOptionPane.showMessageDialog(null, adbTestResult ? "恭喜,adb检测可用" : "抱歉,adb检测不可用,请确认adb路径正确", "提示",
-                    adbTestResult ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
-        });
-        Box boxForAdbHint = Box.createHorizontalBox();
-        boxForAdbHint.add(labelForAdbHint);
-        boxForAdbHint.add(Box.createHorizontalStrut(8));
-        boxForAdbHint.add(btnForAdbTest);
-
-        JPanel adbForPanel = new JPanel();
-        adbForPanel.setBackground(Color.pink);
-        adbForPanel.add(boxForAdb);
-        JPanel adbHintForPanel = new JPanel();
-        adbHintForPanel.setBackground(Color.pink);
-        adbHintForPanel.add(boxForAdbHint);
-
-        JLabel boxForAdbHint2 = new JLabel("adb文件路径是在AndroidSdk的platform-tools目录下,举例:/Users/stephen/Library/Android/sdk/platform-tools/adb");
-        JPanel adbHint2ForPanel = new JPanel();
-        adbHint2ForPanel.setBackground(Color.pink);
-        adbHint2ForPanel.add(boxForAdbHint2);
-        bindJLabelCopyFun(boxForAdbHint2);
-
-        JCheckBox checkBoxForAdb = new JCheckBox("自定义adb路径(可选,默认adb环境不可用时设置)");
-        checkBoxForAdb.addChangeListener(e -> {
-            JCheckBox checkBox = (JCheckBox) e.getSource();
-            adbForPanel.setVisible(checkBox.isSelected());
-            adbHintForPanel.setVisible(checkBox.isSelected());
-            adbHint2ForPanel.setVisible(checkBox.isSelected());
-        });
-
-        Box baseBox = Box.createVerticalBox();
-        JPanel panel = new JPanel(new GridLayout(1, 1));
-        panel.add(checkBoxForAdb);
-        baseBox.add(panel);
-        baseBox.add(Box.createVerticalStrut(5));
-        baseBox.add(adbForPanel);
-        baseBox.add(adbHintForPanel);
-        baseBox.add(adbHint2ForPanel);
-
-        checkBoxForAdb.setSelected(false);
-        adbForPanel.setVisible(checkBoxForAdb.isSelected());
-        adbHintForPanel.setVisible(checkBoxForAdb.isSelected());
-        adbHint2ForPanel.setVisible(checkBoxForAdb.isSelected());
-        return baseBox;
+    private String getCurAdbSourceCommand(){
+        String curAdbCommand = "";
+        if(radioForBuiltInAdb.isSelected()){
+            curAdbCommand = builtInAdbPathStr;
+        }else if(radioForSysAdb.isSelected()){
+            curAdbCommand = "adb";
+        }else if(radioForCustomizeAdb.isSelected()){
+            curAdbCommand = inputForJksAdb.getText();
+        }
+        return curAdbCommand;
+    }
+    private boolean checkAdbSourceAvailable(boolean isHintDialog){
+        String curAdbCommand = getCurAdbSourceCommand();
+        boolean adbTestResult = execProcessBuilder(curAdbCommand, "version");
+        textAreaForLog.append("==========adb可用性测试结果=======>"+adbTestResult+"\n");
+        if(isHintDialog)JOptionPane.showMessageDialog(null, adbTestResult ? "恭喜,adb检测可用" : "抱歉,adb检测不可用,请确认adb", "提示",
+                adbTestResult ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
+        return adbTestResult;
     }
 
     private void sureStartExecute(){
-        textAreaForLog.setText("开始执行中...\n");
-        adbPathStr = inputForJksAdb.getText();
-        textAreaForLog.append(isStrNotEmpty(adbPathStr) ? "设置了adb自定义路径,本次使用自定义adb路径:"+adbPathStr+"中\n" : "未设置adb自定义路径,本次使用系统adb路径中,如果报错,请设置精确的adb路径\n");
+        String curAdbCommand = getCurAdbSourceCommand();
+        textAreaForLog.append("当前使用adb路径:"+curAdbCommand+"\n");
         (new Timer()).schedule(new TimerTask() {
             @Override
             public void run() {
-                sureStartExecuteCore();
+                sureStartExecuteCore(curAdbCommand);
             }
         }, 500);
     }
 
-    private void sureStartExecuteCore(){
+    private void sureStartExecuteCore(String curAdbCommand){
         boolean execResult = execProcessBuilder(rootFolderPathStr+osFolderName+File.separator+"bundle2apksExec.sh", aabPathStr,
-                apksPathStr, jksPathStr, inputForJksPwd.getText(), inputForJksAlias.getText(), inputForJksAliasPwd.getText(),
+                apksPathStr, useJksBean.jksFilePath, useJksBean.jksFilePwd, useJksBean.jksAlias, useJksBean.jksAliasPwd,
                 rootFolderPathStr+"libs"+File.separator+"bundletool.jar");
-        textAreaForLog.append("======bundle2apksExec====execResult=>"+execResult);
-        if(execResult)execProcessBuilder(rootFolderPathStr+osFolderName+File.separator+"installapksExec.sh",
-                apksPathStr+(apksPathStr.endsWith(File.separator) ? "" : File.separator)+aabName.replace(".aab", ".apks"),
-                rootFolderPathStr+"libs"+File.separator+"bundletool.jar", isStrNotEmpty(adbPathStr) ? adbPathStr : defaultAdbPathStr);
+        textAreaForLog.append("======bundle2apksExec====execResult=>"+execResult+"\n");
+        if(execResult) {
+            execResult = execProcessBuilder(rootFolderPathStr + osFolderName + File.separator + "installapksExec.sh",
+                    apksPathStr + (apksPathStr.endsWith(File.separator) ? "" : File.separator) + aabName.replace(".aab", ".apks"),
+                    rootFolderPathStr + "libs" + File.separator + "bundletool.jar", curAdbCommand);
+            if(!execResult)JOptionPane.showMessageDialog(null, "抱歉,安装apks到手机失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
+        }else{
+            JOptionPane.showMessageDialog(null, "抱歉,解压aab到apks失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private boolean execProcessBuilder(String... commandStr) {
         String commandStrInfo = "";
         if(null != commandStr && commandStr.length > 0){
+            if(isStrEmpty(commandStr[0]))return false;
             for (int i = 0; i < commandStr.length; i++) {
                 commandStrInfo += " " + commandStr[i];
             }//end of for
         }//end of if
         textAreaForLog.append("==execProcess===commandStrInfo=>"+commandStrInfo+"\n");
+        if(isStrEmpty(commandStrInfo))return false;
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.command(commandStr);//带参数需要用可变参数方式设置
         processBuilder.redirectErrorStream(true);
+        InputStream inputStream = null;
         try {
             Process start = processBuilder.start();
-            InputStream inputStream = start.getInputStream();
+            inputStream = start.getInputStream();
             InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "gbk");
+            boolean isNotError = true;
             int len = -1;
             char[] c = new char[1024];
             while ((len = inputStreamReader.read(c)) != -1) {
-                String str = new String(c, 0, len);
-                textAreaForLog.append(str);
-                System.out.print("======execProcessResult====line=>"+str);
+                String lineStr = new String(c, 0, len);
+                if(isStrNotEmpty(lineStr) && lineStr.toLowerCase().contains("error"))isNotError = false;
+                textAreaForLog.append("======execProcessResult====>isNotError:"+isNotError+"===lineStr:"+lineStr);
             }
-            inputStream.close();
-            return true;
-        } catch (IOException e) {
+            return isNotError;
+        } catch (Exception e) {
             e.printStackTrace();
             textAreaForLog.append("==execProcess===exception=>"+e.getMessage()+"\n");
             return false;
+        } finally {
+            try {
+                if(null != inputStream)inputStream.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -517,7 +621,7 @@ public class StephenAabMain extends JFrame {
             }//end of for
         }//end of if
         String urlString = urlOnlyStr + (urlOnlyStr.contains("?") ? "&" : "?") + paramSb.toString();
-        textAreaForLog.append("=====doGet===>请求Url:" + urlString);
+        textAreaForLog.append("=====doGet===>请求Url:" + urlString+"\n");
         URL url;
         HttpURLConnection httpURLConnection = null;
         int resCode = -1;
@@ -557,10 +661,58 @@ public class StephenAabMain extends JFrame {
         }
     }
 
-    public class HttpResponseBean{
-        boolean isSuccess;
-        int errCode;
-        String dataInfo;
+    private File downloadForUrl(String downloadUrl, String saveFilePath){
+        textAreaForLog.append("======Stephen============>下载url："+downloadUrl+"===>存储位置："+saveFilePath+"\n");
+        File file = new File(saveFilePath);
+        if (!file.getParentFile().exists())file.getParentFile().mkdirs();
+        FileOutputStream fileOut = null;
+        HttpURLConnection conn = null;
+        InputStream inputStream = null;
+        try {
+            textAreaForLog.append("======Stephen============>下载中..."+"\n");
+            URL httpUrl=new URL(downloadUrl);
+            conn=(HttpURLConnection) httpUrl.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+            conn.setUseCaches(false);
+            conn.connect();
+            inputStream=conn.getInputStream();
+            BufferedInputStream bis = new BufferedInputStream(inputStream);
+            fileOut = new FileOutputStream(saveFilePath);
+            BufferedOutputStream bos = new BufferedOutputStream(fileOut);
+            byte[] buf = new byte[4096];
+            int length = bis.read(buf);
+            while(length != -1) {
+                bos.write(buf, 0, length);
+                length = bis.read(buf);
+            }//end of while
+            bos.close();
+            bis.close();
+            conn.disconnect();
+        } catch (Exception e) {
+            file = null;
+            textAreaForLog.append("======Stephen============>下载异常："+e.toString()+"\n");
+        }
+        return file;
+    }
+
+    public class EntityForJksBean{
+        String jksName;
+        String jksFilePath;
+        String jksFilePwd;
+        String jksAlias;
+        String jksAliasPwd;
+
+        public EntityForJksBean() {}
+
+        public EntityForJksBean(String jksName, String jksFilePath, String jksFilePwd, String jksAlias, String jksAliasPwd) {
+            this.jksName = jksName;
+            this.jksFilePath = jksFilePath;
+            this.jksFilePwd = jksFilePwd;
+            this.jksAlias = jksAlias;
+            this.jksAliasPwd = jksAliasPwd;
+        }
     }
 
     public static void main(String[] args) {
