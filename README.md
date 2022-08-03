@@ -1,4 +1,4 @@
-#StephenAabBundleInstaller
+# StephenAabBundleInstaller
 >针对Google的AndroidBundle包aab开发的一个GUI快捷安装工具,使用Java编写,适配Win/Mac/Linux全平台(包含各平台的Jre,Adb),直接运行Release包里面对应平台的startup脚本即可
 ![运行效果图](src/Readme_Screenshot0.png)
 
