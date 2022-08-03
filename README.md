@@ -1,5 +1,5 @@
 # StephenAabBundleInstaller
->针对Google的AndroidBundle包aab开发的一个GUI快捷安装工具,使用Java编写,适配Win/Mac/Linux全平台(包含各平台的Jre,Adb),直接运行Release包里面对应平台的startup脚本即可
+## 针对Google的AndroidBundle包aab开发的一个GUI快捷安装工具,使用Java编写,适配Win/Mac/Linux全平台(包含各平台的Jre,Adb),直接运行Release包里面对应平台的startup脚本即可
 ![运行效果图](src/Readme_Screenshot0.png)
 
 >Idea来源[AndroidAppBundleIntaller](https://github.com/didikee/AndroidAppBundleIntaller)和[AabInstallHelp](https://github.com/fireantzhang/AabInstallHelp)这两个项目,虽然总体不错,但是这两个项目实际使用感觉还是有点缺点,比如gui支持的平台不全,或者容错处理不够,还有需要安装基础依赖,对非开发人员使用不够好;因此有了这个项目,真正做到开箱即用!
@@ -39,3 +39,5 @@
 }]
 ```
 ![jks切换](src/Readme_Screenshot3.png)
+
+>因手头暂无linux系统,因此linux系统的没咋测试,但和mac相差不大,如有问题,可参考简单修改即可正常运行
