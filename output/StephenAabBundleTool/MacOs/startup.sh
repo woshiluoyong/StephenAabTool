@@ -1,2 +1,2 @@
 #!/bin/bash
-jre/bin/java -jar ../StephenAabTool.jar
+sudo jre/bin/java -jar ../StephenAabTool.jar

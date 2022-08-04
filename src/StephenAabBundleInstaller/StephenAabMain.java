@@ -473,11 +473,12 @@ public class StephenAabMain extends JFrame {
     }
     private boolean checkAdbSourceAvailable(boolean isHintDialog){
         String curAdbCommand = getCurAdbSourceCommand();
-        boolean adbTestResult = execProcessBuilder(curAdbCommand, "version").isExecResult;
+        EntityForAdbRes adbTestResult = execProcessBuilder(curAdbCommand, "version");
         textAreaForLog.append("==========adb可用性测试结果=======>"+adbTestResult+"\n");
-        if(isHintDialog)JOptionPane.showMessageDialog(null, adbTestResult ? "恭喜,adb检测可用" : "抱歉,adb检测不可用,请确认adb", "提示",
-                adbTestResult ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
-        return adbTestResult;
+        if(isHintDialog)JOptionPane.showMessageDialog(null, adbTestResult.isExecResult ? "恭喜,adb检测可用" : "抱歉,adb检测不可用,请确认adb!"
+                        +((isStrNotEmpty(adbTestResult.execResultStr) && adbTestResult.execResultStr.toLowerCase().contains("permission denied")) ? "" : ""), "提示",
+                adbTestResult.isExecResult ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
+        return adbTestResult.isExecResult;
     }
 
     private int checkAdbDevicesAvailable(boolean isHintDialog){
@@ -770,6 +771,7 @@ public class StephenAabMain extends JFrame {
                     while (is.available() > 0) fos.write(is.read());
                 }
             }
+            System.out.println("====extractFilesFromJar============>执行释放全部文件完成,如遇权限问题,请先关闭程序然后对jar文件同级的释放目录[StephenAabBundleInstaller]执行授予运行权限操作再次运行!");
             return true;
         } catch (Exception e) {
             e.printStackTrace();
