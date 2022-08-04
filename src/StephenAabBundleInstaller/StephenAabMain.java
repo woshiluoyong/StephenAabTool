@@ -23,11 +23,11 @@ import java.util.jar.JarFile;
 //aab包安装器主界面;author:Stephen
 public class StephenAabMain extends JFrame {
     private String osFolderName;
+    private String tempFolderPathStr;
     private String rootAssetsPathStr;
     private String rootFolderPathStr;
     private String builtInAdbPathStr;
     private String aabPathStr;
-    private String apksPathStr;
     private String jksPathStr;
     private JRadioButton radioForBuiltInAdb, radioForSysAdb, radioForCustomizeAdb;
     private JTabbedPane tabBarPane;
@@ -43,6 +43,8 @@ public class StephenAabMain extends JFrame {
         System.out.println("==StephenAabMain==rootPathStr=======>"+rootPathStr+"===curOsFolderName==>"+curOsFolderName);
         osFolderName = curOsFolderName;
         rootFolderPathStr = rootPathStr+(rootPathStr.endsWith(File.separator) ? "" : File.separator)+ "StephenAabBundleInstaller" +File.separator;
+        tempFolderPathStr = rootFolderPathStr+"temp"+File.separator;
+        if(!(new File(tempFolderPathStr).exists()))(new File(tempFolderPathStr)).mkdirs();
         rootAssetsPathStr = rootFolderPathStr+"assets"+File.separator;
         builtInAdbPathStr = rootFolderPathStr+osFolderName+File.separator+"adb-tool"+File.separator+(isWinOs ? "adb.exe" : "adb");
 
@@ -80,31 +82,6 @@ public class StephenAabMain extends JFrame {
         aabForPanel.setBackground(Color.ORANGE);
         aabForPanel.add(boxForAab);
 
-        FileDialog fdForApks = new FileDialog(this, "选择中间临时文件输出目录", FileDialog.SAVE);
-        JLabel labelForApks = new JLabel("选择临时文件Tmp目录:");
-        JButton btnForApks = new JButton("选择");
-        JTextField labelForApksResult = new JTextField("", 40);
-        labelForApksResult.setEnabled(false);
-        btnForApks.addActionListener(e -> {
-            fdForApks.setVisible(true);
-            if(isStrNotEmpty(fdForApks.getDirectory()) && isStrNotEmpty(fdForApks.getFile())){
-                apksPathStr = fdForApks.getDirectory()+fdForApks.getFile();
-                textAreaForLog.append("==============选择的Apks包目录===>"+apksPathStr+"\n");
-                labelForApksResult.setText(apksPathStr);
-            }else{
-                labelForApksResult.setText(isStrNotEmpty(apksPathStr) ? apksPathStr : "未选择");
-            }
-        });
-        Box boxForApks = Box.createHorizontalBox();
-        boxForApks.add(labelForApks);
-        boxForApks.add(Box.createHorizontalStrut(8));
-        boxForApks.add(btnForApks);
-        boxForApks.add(Box.createHorizontalStrut(8));
-        boxForApks.add(labelForApksResult);
-        JPanel apksForPanel = new JPanel();
-        apksForPanel.setBackground(Color.ORANGE);
-        apksForPanel.add(boxForApks);
-
         tabBarPane = new JTabbedPane();
         tabBarPane.setForeground(Color.BLACK);
         tabBarPane.addTab("自定义解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_custom.png"), createJksComponent());
@@ -115,10 +92,8 @@ public class StephenAabMain extends JFrame {
         JButton btnForClear = new JButton("重置所有内容", new ImageIcon(rootAssetsPathStr+"icon_clear.png"));
         btnForClear.addActionListener(e -> {
             aabPathStr = null;
-            apksPathStr = null;
             jksPathStr = null;
             labelForAabResult.setText("");
-            labelForApksResult.setText("");
             labelForJksResult.setText("");
             inputForJksPwd.setText("");
             inputForJksAlias.setText("");
@@ -152,10 +127,6 @@ public class StephenAabMain extends JFrame {
                 JOptionPane.showMessageDialog(null, "请选择待安装Aab包路径", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }//end of if
-            if(isStrEmpty(apksPathStr)){
-                JOptionPane.showMessageDialog(null, "请选择输出Apks包目录", "提示", JOptionPane.WARNING_MESSAGE);
-                return;
-            }//end of if
             if(0 == tabBarPane.getSelectedIndex()){
                 if(isStrEmpty(jksPathStr)){
                     JOptionPane.showMessageDialog(null, "请选择签名文件Jks路径", "提示", JOptionPane.WARNING_MESSAGE);
@@ -183,7 +154,7 @@ public class StephenAabMain extends JFrame {
                     JOptionPane.showMessageDialog(null, "请先成功获取签名文件然后选择一个签名文件", "提示", JOptionPane.WARNING_MESSAGE);
                     return;
                 }//end of if
-                String saveJksPath = apksPathStr+(apksPathStr.endsWith(File.separator) ? "" : File.separator)+"selectJks.jks";
+                String saveJksPath = tempFolderPathStr+(tempFolderPathStr.endsWith(File.separator) ? "" : File.separator)+"selectJks.jks";
                 (new File(saveJksPath)).delete();
                 EntityForJksBean originUseJksBean = entityForJksBeanArrayList.get(curSelectJksIndex);
                 downloadForUrl(originUseJksBean.jksFilePath, saveJksPath);
@@ -219,7 +190,6 @@ public class StephenAabMain extends JFrame {
         baseBox.add(createAdbComponent());
         baseBox.add(Box.createVerticalStrut(10));
         baseBox.add(aabForPanel);
-        baseBox.add(apksForPanel);
         baseBox.add(Box.createVerticalStrut(5));
         baseBox.add(tabBarPane);
         baseBox.add(Box.createVerticalStrut(5));
@@ -539,12 +509,12 @@ public class StephenAabMain extends JFrame {
 
     private void sureStartExecuteCore(String curAdbCommand){
         boolean execResult = execProcessBuilder(rootFolderPathStr+osFolderName+File.separator+"bundle2apksExec.sh", aabPathStr,
-                apksPathStr, useJksBean.jksFilePath, useJksBean.jksFilePwd, useJksBean.jksAlias, useJksBean.jksAliasPwd,
+                tempFolderPathStr, useJksBean.jksFilePath, useJksBean.jksFilePwd, useJksBean.jksAlias, useJksBean.jksAliasPwd,
                 rootFolderPathStr+"libs"+File.separator+"bundletool.jar").isExecResult;
         textAreaForLog.append("======bundle2apksExec====execResult=>"+execResult+"\n");
         if(execResult) {
             execResult = execProcessBuilder(rootFolderPathStr + osFolderName + File.separator + "installapksExec.sh",
-                    apksPathStr + (apksPathStr.endsWith(File.separator) ? "" : File.separator) + aabName.replace(".aab", ".apks"),
+                    tempFolderPathStr + (tempFolderPathStr.endsWith(File.separator) ? "" : File.separator) + aabName.replace(".aab", ".apks"),
                     rootFolderPathStr + "libs" + File.separator + "bundletool.jar", curAdbCommand).isExecResult;
             if(!execResult)JOptionPane.showMessageDialog(null, "抱歉,安装apks到手机失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
         }else{
@@ -569,7 +539,7 @@ public class StephenAabMain extends JFrame {
         try {
             Process start = processBuilder.start();
             inputStream = start.getInputStream();
-            InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "gbk");
+            InputStreamReader inputStreamReader = new InputStreamReader(inputStream, "utf-8");
             boolean isNotError = true;
             int len = -1;
             char[] c = new char[1024];
@@ -764,7 +734,7 @@ public class StephenAabMain extends JFrame {
         }//end of if
         boolean isIntegrityOk = true;
         for (int i = 0; i < targetFolderInJarAry.length; i++) {
-            if(null != targetFolderInJarAry[i] && !(new File(targetFolderInJarAry[i])).exists()) {
+            if(null != targetFolderInJarAry[i] && !(new File(destDirStr+(destDirStr.endsWith(File.separator) ? "" : File.separator)+targetFolderInJarAry[i]).exists())) {
                 isIntegrityOk = false;
                 break;
             }//end of if
@@ -810,7 +780,7 @@ public class StephenAabMain extends JFrame {
 
     public static void main(String[] args) {
         System.out.println("====StephenAabBundleInstaller====Main===>注:运行会检查必备运行环境是否完整,如果不完整,会释放运行必备文件到本Jar运行的目录[StephenAabBundleInstaller]文件夹下,释放会占用一点时间,请耐心等待!");
-        String jarFile = System.getProperty("java.class.path");//获取当前执行的jar名称(StephenAabMain.class.getProtectionDomain().getCodeSource().getLocation().getFile())
+        String jarFile = StephenAabMain.class.getProtectionDomain().getCodeSource().getLocation().getFile();//System.getProperty("java.class.path");//获取当前执行的jar路径
         String destDirStr = ((new File(jarFile)).getParent());
         String os = System.getProperty("os.name");
         System.out.println("====StephenAabBundleInstaller====Main===run===jar==>"+jarFile+"====>destDirStr:"+destDirStr+"=====>os:"+os);
