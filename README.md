@@ -11,8 +11,7 @@
 3. 请务必按后面步骤运行startup脚本,否则可能会因为没有运行权限而无法运行或者异常
 4. <font color=#FF0000>如果你是Windows平台:请进入Windows目录右键```startup.bat```选择[以管理员身份运行]</font>
 5. <font color=#FF0000>如果你是Mac/Linux平台:请打开[终端]然后进入Mac/Linux目录 </font>
-   - 输入```sudo -i```回车然后输入密码切换成root用户(退出root用户用exit命令,pwd命令查看当前目录)
-   - 执行```chmod u+x,o+x startup.sh```
+   - 执行```sudo chmod u+x,o+x startup.sh```
    - 执行```./startup.sh```运行
 6. 权限不足可能会导致获取的路径为空导致异常,如下图:
 >![权限不足导致的无法运行](src/Readme_ScreenshotPermission0.png)
@@ -20,11 +19,13 @@
 ### 本条非常重要,请详细阅读及操作
 1. startup开始执行本程序会自动检查运行目录下是否存在StephenAabBundleInstaller目录,以及该目录下的子文件夹assets/libs/以及对应平台的运行环境,如果不完整,会自动释放StephenAabTool.jar里面对应的环境文件,此过程可能有点慢,请耐心等待完成;
 2. <font color=#FF0000>释放完成后强烈需要对生成的StephenAabBundleInstaller目录以及子文件授予运行权限,否则可能无法运行里面文件或者一直校验必备运行环境不完整,每次都执行释放操作 
-    - Mac/Linux在[终端]用上步的root用户下执行```chmod -R 777 /Users/stephen/Documents/xxxxxx/StephenAabTool/output/StephenAabBundleTool/StephenAabBundleInstaller```
+    - Mac/Linux在[终端]用执行```sudo chmod -R 777 /Users/stephen/Documents/xxxxxx/StephenAabBundleTool/StephenAabBundleInstaller/```
     - Windows可在生成的```xxxx/StephenAabBundleTool/StephenAabBundleInstaller```目录上右键属性里面修改该文件夹和子文件权限修改</font>
 3. 修改后可先点击界面上的```点我可测试Adb可用性```按钮,然后查看界面上日志是否包含有"Permission denied"判断是否权限不足导致adb不可用,修改权限直至adb运行成功为止,如下图:
 ![权限不足测试](src/Readme_ScreenshotPermission1.png)
 ![权限正常测试](src/Readme_ScreenshotPermission2.png)
+
+#### <font color=#00FF00>特别备注:有部分权限问题除了adb权限还可能是因为StephenAabBundleTool目录下面对应平台的Jre目录权限导致,这种可能在下面说明的链接里面去下载一个jdk,然后手动执行```xxxx/jdk/bin/java -jar StephenAabTool.jar```比解决权限来得更快</font>
 
 >如果某些原因,内部包含的环境版本太老或者不兼容,可自己替换释放生成的StephenAabBundleInstaller目录里面的adb/jre/bundletool等!,提供部分下载便捷地址如下:
 >[AndroidSdk包含adb相关](https://www.androiddevtools.cn/)
