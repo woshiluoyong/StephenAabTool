@@ -60,7 +60,7 @@ public class StephenAabMain extends JFrame {
         JLabel labelForAab = new JLabel("选择安装 Aab 包路径:");
         JButton btnForAab = new JButton("选择");
         JTextField labelForAabResult = new JTextField("", 40);
-        labelForAabResult.setEnabled(false);
+        labelForAabResult.setEnabled(true);
         btnForAab.addActionListener(e -> {
             fdForAab.setVisible(true);
             if(isStrNotEmpty(fdForAab.getDirectory()) && isStrNotEmpty(fdForAab.getFile())){
@@ -69,7 +69,7 @@ public class StephenAabMain extends JFrame {
                 textAreaForLog.append("==============选择的Aab包===aabName:"+aabName+"===>aabPathStr:"+aabPathStr+"\n");
                 labelForAabResult.setText(aabPathStr);
             }else{
-                labelForAabResult.setText(isStrNotEmpty(aabPathStr) ? aabPathStr : "未选择");
+                labelForAabResult.setText(isStrNotEmpty(aabPathStr) ? aabPathStr : "");
             }
         });
         Box boxForAab = Box.createHorizontalBox();
@@ -123,11 +123,13 @@ public class StephenAabMain extends JFrame {
                 JOptionPane.showMessageDialog(null, "adb连接超过了1台设备,请先断开多余的设备", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }//end of if
+            if(isStrNotEmpty(labelForAabResult.getText()))aabPathStr = labelForAabResult.getText();
             if(isStrEmpty(aabPathStr)){
                 JOptionPane.showMessageDialog(null, "请选择待安装Aab包路径", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }//end of if
             if(0 == tabBarPane.getSelectedIndex()){
+                if(isStrNotEmpty(labelForJksResult.getText()))jksPathStr = labelForJksResult.getText();
                 if(isStrEmpty(jksPathStr)){
                     JOptionPane.showMessageDialog(null, "请选择签名文件Jks路径", "提示", JOptionPane.WARNING_MESSAGE);
                     return;
@@ -308,7 +310,7 @@ public class StephenAabMain extends JFrame {
         JLabel labelForJks = new JLabel("选择签名文件Jks路径:");
         JButton btnForJks = new JButton("选择");
         labelForJksResult = new JTextField("", 40);
-        labelForJksResult.setEnabled(false);
+        labelForJksResult.setEnabled(true);
         btnForJks.addActionListener(e -> {
             fdForJks.setVisible(true);
             if(isStrNotEmpty(fdForJks.getDirectory()) && isStrNotEmpty(fdForJks.getFile())){
@@ -316,7 +318,7 @@ public class StephenAabMain extends JFrame {
                 textAreaForLog.append("==============选择的Jks路径===>"+jksPathStr+"\n");
                 labelForJksResult.setText(jksPathStr);
             }else{
-                labelForJksResult.setText(isStrNotEmpty(jksPathStr) ? jksPathStr : "未选择");
+                labelForJksResult.setText(isStrNotEmpty(jksPathStr) ? jksPathStr : "");
             }
         });
         Box boxForJks = Box.createHorizontalBox();
