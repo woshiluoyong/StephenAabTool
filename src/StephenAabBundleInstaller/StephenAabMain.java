@@ -38,6 +38,7 @@ public class StephenAabMain extends JFrame {
     private String aabName = null;
     private ArrayList<EntityForJksBean> entityForJksBeanArrayList = new ArrayList<>();
     private EntityForJksBean useJksBean = new EntityForJksBean();
+    private boolean isExecuteRunning = false;
 
     public StephenAabMain(String rootPathStr, boolean isWinOs, String curOsFolderName) {
         System.out.println("==StephenAabMain==rootPathStr=======>"+rootPathStr+"===curOsFolderName==>"+curOsFolderName);
@@ -85,7 +86,7 @@ public class StephenAabMain extends JFrame {
         tabBarPane = new JTabbedPane();
         tabBarPane.setForeground(Color.BLACK);
         tabBarPane.addTab("自定义解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_custom.png"), createJksComponent());
-        tabBarPane.addTab("俊云快速解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_junyun.png"), createJunYunComponent());
+        tabBarPane.addTab("公司快速解包签名文件", new ImageIcon(rootAssetsPathStr+"icon_company.png"), createJunYunComponent());
         tabBarPane.setSelectedIndex(0);
 
         Box boxForExecute = Box.createHorizontalBox();
@@ -106,6 +107,10 @@ public class StephenAabMain extends JFrame {
         boxForExecute.add(Box.createHorizontalStrut(8));
         JButton btnForStart = new JButton("开始执行安装", new ImageIcon(rootAssetsPathStr+"icon_install.png"));
         btnForStart.addActionListener(e -> {
+            if(isExecuteRunning){
+                JOptionPane.showMessageDialog(null, "正在执行解包安装Aab中,请耐心等待完成!", "提示", JOptionPane.WARNING_MESSAGE);
+                return;
+            }//end of if
             textAreaForLog.setText("开始执行中...\n");
             if(radioForCustomizeAdb.isSelected() && isStrEmpty(inputForJksAdb.getText())){
                 JOptionPane.showMessageDialog(null, "请选择精确的可用的adb路径", "提示", JOptionPane.WARNING_MESSAGE);
@@ -362,7 +367,7 @@ public class StephenAabMain extends JFrame {
     }
 
     private JComponent createJunYunComponent() {
-        JLabel labelForJunYun = new JLabel("请在后面输入链接信息获取俊云产品签名:");
+        JLabel labelForJunYun = new JLabel("请在后面输入链接信息获取公司产品签名:");
         JButton btnForJunYun = new JButton("获取");
         JTextField labelForJunYunRwd = new JTextField(40);
         labelForJunYunRwd.setEnabled(true);
@@ -374,27 +379,27 @@ public class StephenAabMain extends JFrame {
         boxForJunYun.add(Box.createHorizontalStrut(8));
         boxForJunYun.add(labelForJunYunRwd);
 
-        JLabel labelForJunYunHint = new JLabel("请点击按钮获取,获取成功下面区域将展示俊云产品签名数据,然后就可以选择啦!");
+        JLabel labelForJunYunHint = new JLabel("请点击按钮获取,获取成功下面区域将展示公司产品签名数据,然后就可以选择啦!");
         Box boxForJunYunHint = Box.createHorizontalBox();
         boxForJunYunHint.add(labelForJunYunHint);
 
         JPanel panelForJunYun = new JPanel();
         btnForJunYun.addActionListener(e -> {
             if(isStrEmpty(labelForJunYunRwd.getText())){
-                JOptionPane.showMessageDialog(null, "请先输入俊云链接信息", "提示", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(null, "请先输入公司链接信息", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }//end of if
             btnGroupForJunYun = null;
             panelForJunYun.removeAll();
             panelForJunYun.setVisible(false);
             entityForJksBeanArrayList.clear();
-            labelForJunYunHint.setText("获取俊云产品签名数据中,请稍后");
+            labelForJunYunHint.setText("获取公司产品签名数据中,请稍后");
             String httpRetInfo = httpGetRequest(labelForJunYunRwd.getText(), new HashMap<>(){{
                 put("otherParam", "stephen");
             }});
-            textAreaForLog.append("==============获取俊云产品签名数据===>"+httpRetInfo+"\n");
+            textAreaForLog.append("==============获取公司产品签名数据===>"+httpRetInfo+"\n");
             if(isStrEmpty(httpRetInfo)){
-                labelForJunYunHint.setText("获取俊云产品签名数据为空,请重试");
+                labelForJunYunHint.setText("获取公司产品签名数据为空,请重试");
             }else{
                 JSONObject jsonObject = new JSONObject(httpRetInfo);
                 if(null != jsonObject){
@@ -417,20 +422,20 @@ public class StephenAabMain extends JFrame {
                                 }//end of if
                             }
                             if(addOkNum > 0){
-                                labelForJunYunHint.setText("获取俊云产品签名成功,共"+addOkNum+"款,请选择!");
+                                labelForJunYunHint.setText("获取公司产品签名成功,共"+addOkNum+"款,请选择!");
                                 panelForJunYun.add(new JLabel("请选择产品签名:"), 0);
                                 panelForJunYun.setVisible(true);
                             }else{
-                                labelForJunYunHint.setText("解析返回的俊云产品签名为空!");
+                                labelForJunYunHint.setText("解析返回的公司产品签名为空!");
                             }
                         }else{
-                            labelForJunYunHint.setText("获取返回的俊云产品签名为空!");
+                            labelForJunYunHint.setText("获取返回的公司产品签名为空!");
                         }
                     }else{
-                        labelForJunYunHint.setText("获取俊云产品签名返回数据失败,"+(jsonObject.has("dataInfo") ? jsonObject.getString("dataInfo") : "请重试"));
+                        labelForJunYunHint.setText("获取公司产品签名返回数据失败,"+(jsonObject.has("dataInfo") ? jsonObject.getString("dataInfo") : "请重试"));
                     }
                 }else{
-                    labelForJunYunHint.setText("获取俊云产品签名返回数据为空,请重试");
+                    labelForJunYunHint.setText("获取公司产品签名返回数据为空,请重试");
                 }
             }
         });
@@ -500,6 +505,7 @@ public class StephenAabMain extends JFrame {
     }
 
     private void sureStartExecute(){
+        isExecuteRunning = true;
         String curAdbCommand = getCurAdbSourceCommand();
         textAreaForLog.append("当前使用adb路径:"+curAdbCommand+"\n");
         (new Timer()).schedule(new TimerTask() {
@@ -511,17 +517,27 @@ public class StephenAabMain extends JFrame {
     }
 
     private void sureStartExecuteCore(String curAdbCommand){
-        boolean execResult = execProcessBuilder(rootFolderPathStr+osFolderName+File.separator+"bundle2apksExec.sh", aabPathStr,
-                tempFolderPathStr, useJksBean.jksFilePath, useJksBean.jksFilePwd, useJksBean.jksAlias, useJksBean.jksAliasPwd,
-                rootFolderPathStr+"libs"+File.separator+"bundletool.jar").isExecResult;
-        textAreaForLog.append("======bundle2apksExec====execResult=>"+execResult+"\n");
-        if(execResult) {
-            execResult = execProcessBuilder(rootFolderPathStr + osFolderName + File.separator + "installapksExec.sh",
-                    tempFolderPathStr + (tempFolderPathStr.endsWith(File.separator) ? "" : File.separator) + aabName.replace(".aab", ".apks"),
-                    rootFolderPathStr + "libs" + File.separator + "bundletool.jar", curAdbCommand).isExecResult;
-            if(!execResult)JOptionPane.showMessageDialog(null, "抱歉,安装apks到手机失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
-        }else{
-            JOptionPane.showMessageDialog(null, "抱歉,解压aab到apks失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
+        try {
+            boolean execResult = execProcessBuilder(rootFolderPathStr+osFolderName+File.separator+"bundle2apksExec.sh", aabPathStr,
+                    tempFolderPathStr, useJksBean.jksFilePath, useJksBean.jksFilePwd, useJksBean.jksAlias, useJksBean.jksAliasPwd,
+                    rootFolderPathStr+"libs"+File.separator+"bundletool.jar").isExecResult;
+            String aabName = aabPathStr.substring(aabPathStr.lastIndexOf(File.separator));
+            textAreaForLog.append("======bundle2apksExec===aabName:"+aabName+"====execResult=>"+execResult+"\n");
+            if(execResult) {
+                execResult = execProcessBuilder(rootFolderPathStr + osFolderName + File.separator + "installapksExec.sh",
+                        tempFolderPathStr + (tempFolderPathStr.endsWith(File.separator) ? "" : File.separator) + aabName.replace(".aab", ".apks"),
+                        rootFolderPathStr + "libs" + File.separator + "bundletool.jar", curAdbCommand).isExecResult;
+                textAreaForLog.append("======installApksExec====execResult=>"+execResult+"\n");
+                isExecuteRunning = false;
+                if(!execResult)JOptionPane.showMessageDialog(null, "抱歉,安装apks到手机失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
+            }else{
+                isExecuteRunning = false;
+                JOptionPane.showMessageDialog(null, "抱歉,解压aab到apks失败,请查看日志信息解决再试!", "提示", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (HeadlessException e) {
+            e.printStackTrace();
+            isExecuteRunning = false;
+            textAreaForLog.append("======sureStartExecuteCore====exception=>"+e.getMessage()+"\n");
         }
     }
 
