@@ -1,4 +1,46 @@
 # StephenAabBundleInstaller
+
+# <font color=#00FF00>一.以下为新方法,非常建议使用</font>
+## 针对Google的AndroidBundle包aab开发的一个Pythonk脚本快捷安装工具,支持环境校验,设备连接校验,真正做到一键安装
+>Idea来源[AndroidAppBundleIntaller](https://github.com/didikee/AndroidAppBundleIntaller)和[AabInstallHelp](https://github.com/fireantzhang/AabInstallHelp)这两个项目,虽然总体不错,但是这两个项目实际使用感觉还是有点缺点,比如gui支持的平台不全,或者容错处理不够,还有需要安装基础依赖,对非开发人员使用不够好;因此有了这个项目,真正做到开箱即用!
+
+### 脚本运行命令形如:
+>```python
+>python3 googleAabPkgInstaller.py
+>```
+
+>```python
+>python3 googleAabPkgInstaller.py debug adb=/Users/stephen/Library/Android/sdk/platform-tools/adb jdk=/Users/>stephen/Downloads/Vicky/jdk-19.0.1.jdk/Contents/Home/bin/java bundletool=bundletool-all-1.13.2.jar aab=/Users/>stephen/Downloads/Vicky/app-googleplay2022-12-13_135518.aab
+>```
+### 运行参数以空格分开,没有顺序,参数解释:
+- debug: [可选]调试模式,会输出更详细的日志信息,没有值
+- adb: [可选]指定adb的绝对路径,如果设置请定位sdk的platform-tools目录里面的adb文件上,不设置将使用环境变量的
+- jdk: [可选]指定java命令的绝对路径,如果设置请定位jdk的bin目录里面的java文件上,不设置将使用环境变量的
+- bundletool: [可选]指定bundletool的绝对路径,不设置将使用环境变量的,mac可使用brew install bundletool安装
+- aab: [可选]指定要安装的aab文件的绝对路径,不设置将在后面提示补充单独设置
+
+### 运行效果图
+![运行效果图](src/Readme_ScreenshotNew.png)
+
+>本系统为方便公司内部使用,避免手填签名文件jks的繁琐,因此当提示选择"使用公司签名文件"时做了接口拉取选择,使用上只需填写正确的接口获取签名文件选择即可,接口需为Get请求格式且按如下格式返回:
+>```json
+>[{
+>    "jksName": "SixFast",
+>    "jksFilePath": "http://127.0.0.1/xxxx/xxxx.jks",
+>    "jksFilePwd": "xxxx",
+>    "jksAlias": "xxxx",
+>    "jksAliasPwd": "xxxx"
+>},{
+>    "jksName": "LagoFast",
+>    "jksFilePath": "http://127.0.0.1/xxxx/xxxx.jks",
+>    "jksFilePwd": "xxxx",
+>    "jksAlias": "xxxx",
+>    "jksAliasPwd": "xxxx"
+>}]
+>```
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# <font color=#FF0000>二.以下为老方法,权限问题比较多,亦可尝试使用</font>
 ## 针对Google的AndroidBundle包aab开发的一个GUI快捷安装工具,使用Java编写,适配Win/Mac/Linux全平台(包含各平台的Jre,Adb),直接运行Release包里面对应平台的startup脚本即可
 >Idea来源[AndroidAppBundleIntaller](https://github.com/didikee/AndroidAppBundleIntaller)和[AabInstallHelp](https://github.com/fireantzhang/AabInstallHelp)这两个项目,虽然总体不错,但是这两个项目实际使用感觉还是有点缺点,比如gui支持的平台不全,或者容错处理不够,还有需要安装基础依赖,对非开发人员使用不够好;因此有了这个项目,真正做到开箱即用!
 
