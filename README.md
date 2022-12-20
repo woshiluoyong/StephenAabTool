@@ -1,10 +1,10 @@
 # StephenAabBundleInstaller
 
 # <font color=#00FF00>一.以下为新方法,非常建议使用</font>
-## 针对Google的AndroidBundle包aab开发的一个Pythonk脚本快捷安装工具,支持环境校验,设备连接校验,真正做到一键安装
+## 针对Google的AndroidBundle包aab开发的一个Python脚本快捷安装工具,支持环境校验,设备连接校验,真正做到一键安装
 >Idea来源[AndroidAppBundleIntaller](https://github.com/didikee/AndroidAppBundleIntaller)和[AabInstallHelp](https://github.com/fireantzhang/AabInstallHelp)这两个项目,虽然总体不错,但是这两个项目实际使用感觉还是有点缺点,比如gui支持的平台不全,或者容错处理不够,还有需要安装基础依赖,对非开发人员使用不够好;因此有了这个项目,真正做到开箱即用!
 
-### 脚本运行命令形如:
+### 脚本运行命令形如(只需要这个脚本即可):
 >```python
 >python3 googleAabPkgInstaller.py
 >```
