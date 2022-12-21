@@ -71,7 +71,7 @@ def showOrHideLoadingAnim(isShow):
   else:
     isLoadingDone = True
 
-def execuAabPkgOperation(isUseJks):
+def execuAabPkgOperation(isUseJks, isDelJks):
   print('=====Stephen==googleAabPkgInstaller======>执行AAB包解压到APKS开始...')#, useJksPath, useJksPwd, useJksAlias, useJksAliasPwd)
   showOrHideLoadingAnim(True)
   print('\n')
@@ -82,7 +82,7 @@ def execuAabPkgOperation(isUseJks):
   +' build-apks --bundle='+useAabPath+' --output='+outputTmpApks
   +((' --ks='+useJksPath+' --ks-pass=pass:'+useJksPwd+' --ks-key-alias='+useJksAlias+' --key-pass=pass:'+useJksAliasPwd) if True == isUseJks else ''))
   showOrHideLoadingAnim(False)
-  if os.path.exists(useJksPath):
+  if True == isDelJks and os.path.exists(useJksPath):
     os.remove(useJksPath)
   print('=====Stephen==googleAabPkgInstaller======>执行APKS包安装到设备开始...')
   showOrHideLoadingAnim(True)
@@ -239,7 +239,7 @@ def initExecuteFun():
                     useJksPwd = jksDataInfo[selectJksIndex]['jksFilePwd']
                     useJksAlias = jksDataInfo[selectJksIndex]['jksAlias']
                     useJksAliasPwd = jksDataInfo[selectJksIndex]['jksAliasPwd']
-                    execuAabPkgOperation(True)
+                    execuAabPkgOperation(True, True)
                 else:
                     print("=====Stephen==googleAabPkgInstaller======>下载公司签名文件信息失败,请检查接口返回数据")
                     sys.exit(0)
@@ -280,9 +280,9 @@ def initExecuteFun():
     if useJksAliasPwd is None:
       print('=====Stephen==googleAabPkgInstaller======>输入本地签名jks文件的别名密码为空,请输入!')
       sys.exit(0)
-    execuAabPkgOperation(True)
+    execuAabPkgOperation(True, False)
   else:
-    execuAabPkgOperation(False)
+    execuAabPkgOperation(False, False)
       
 #init
 initExecuteFun()
