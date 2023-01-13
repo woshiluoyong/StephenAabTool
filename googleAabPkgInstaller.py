@@ -84,7 +84,7 @@ def execuAabPkgOperation(isUseJks, isDelJks):
   showOrHideLoadingAnim(False)
   if True == isDelJks and os.path.exists(useJksPath):
     os.remove(useJksPath)
-  print('=====Stephen==googleAabPkgInstaller======>执行APKS包安装到设备开始...')
+  print('=====Stephen==googleAabPkgInstaller======>执行APKS包安装到设备开始,请注意查看手机上是否提示安装确认弹框...')
   showOrHideLoadingAnim(True)
   print('\n')
   returnContentAry = execute_shell_command(((useJdkPath + ' -jar ' + useBundleToolPath) if useBundleToolPath.lower().endswith('.jar') else useBundleToolPath)
@@ -194,6 +194,7 @@ def initExecuteFun():
       print('=====Stephen==googleAabPkgInstaller======>输入获取公司签名文件的网络地址为空,请输入!')
       sys.exit(0)
     else:
+      print("=====Stephen==googleAabPkgInstaller======>获取公司签名文件信息中...")
       showOrHideLoadingAnim(True)
       print('\n')
       try:
