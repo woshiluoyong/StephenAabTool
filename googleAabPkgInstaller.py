@@ -3,15 +3,24 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+import pip
 import os
 import sys
+import platform
 import subprocess
 import time
 import itertools
 import threading
-import requests
 import urllib
 import json
+import random
+
+try:
+    import requests
+except ImportError as e:
+    #pip.main(['install', pkg])
+    os.system('pip install requests')# 注意 pip 和 pip3 在使用时的区别
+    import requests
 
 isDebug = False
 useJdkPath = ''
@@ -27,27 +36,31 @@ useJksAliasPwd = ''
 selectDevice = None
 isLoadingDone = False
 
+curScriptFolder = '../'
+
 #执行命令核心方法
 def execute_shell_command(cmd):
   inputCmd = str(cmd)
   returnContentAry = []
   try:
-    return_info = subprocess.Popen(inputCmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return_info = subprocess.Popen(inputCmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     while True:
         next_line = return_info.stdout.readline()
         return_line = next_line.decode("utf-8", "ignore")
         returnContentAry.append(return_line)
         if return_line == '' and return_info.poll() != None:
-            break
+          break
         if True == isDebug:
           print('=====Stephen==googleAabPkgInstaller======>执行命令【'+cmd+' 】实时输出:', return_line)
-
     returncode = return_info.wait()
+    print('=====Stephen==googleAabPkgInstaller======>执行命令返回code:', returncode)
     if returncode:
-        raise subprocess.CalledProcessError(returncode, return_info)
+      showOrHideLoadingAnim(False)
+      print('=====Stephen==googleAabPkgInstaller======>错误执行命令【'+cmd+'】,请手动执行命令确定具体错误原因:', return_info.stderr.read().decode())
+      sys.exit(0)
   except Exception as err:
     showOrHideLoadingAnim(False)
-    print('=====Stephen==googleAabPkgInstaller======>执行命令【'+cmd+' 】异常,请确认命令环境是否配置正确:', err)
+    print('=====Stephen==googleAabPkgInstaller======>异常执行命令【'+cmd+'】,请手动执行命令确定具体错误原因:', err)
     sys.exit(0)
   return returnContentAry
 
@@ -75,7 +88,7 @@ def execuAabPkgOperation(isUseJks, isDelJks):
   print('=====Stephen==googleAabPkgInstaller======>执行AAB包解压到APKS开始...')#, useJksPath, useJksPwd, useJksAlias, useJksAliasPwd)
   showOrHideLoadingAnim(True)
   print('\n')
-  outputTmpApks = (os.getcwd() + os.sep + os.path.basename(useAabPath).replace('.aab','.apks'))
+  outputTmpApks = (curScriptFolder + os.sep + os.path.basename(useAabPath).replace('.aab','.apks'))
   if os.path.exists(outputTmpApks):
     os.remove(outputTmpApks)
   returnContentAry = execute_shell_command(((useJdkPath + ' -jar ' + useBundleToolPath) if useBundleToolPath.lower().endswith('.jar') else useBundleToolPath)
@@ -84,11 +97,11 @@ def execuAabPkgOperation(isUseJks, isDelJks):
   showOrHideLoadingAnim(False)
   if True == isDelJks and os.path.exists(useJksPath):
     os.remove(useJksPath)
-  print('=====Stephen==googleAabPkgInstaller======>执行APKS包安装到设备开始,请注意查看手机上是否提示安装确认弹框...')
+  print('=====Stephen==googleAabPkgInstaller======>执行APKS包安装到设备开始,请注意查看手机上是否提示安装确认弹框,如有,请确认...')
   showOrHideLoadingAnim(True)
   print('\n')
   returnContentAry = execute_shell_command(((useJdkPath + ' -jar ' + useBundleToolPath) if useBundleToolPath.lower().endswith('.jar') else useBundleToolPath)
-  +' install-apks --apks='+outputTmpApks+' --adb='+useAdbPath+' --device-id='+selectDevice)
+  +' install-apks --apks='+outputTmpApks+((' --adb='+useAdbPath) if (useAdbPath != 'adb') else '')+' --device-id='+selectDevice)
   showOrHideLoadingAnim(False)
   if os.path.exists(outputTmpApks):
     os.remove(outputTmpApks)
@@ -96,8 +109,10 @@ def execuAabPkgOperation(isUseJks, isDelJks):
 
 #初始化方法
 def initExecuteFun():
-  global isDebug, useJdkPath, useAdbPath, useBundleToolPath, useAabPath, useJksPath, useJksPwd, useJksAlias, useJksAliasPwd, selectDevice
-  print('=====Stephen==googleAabPkgInstaller======>初始化入参:', sys.argv)
+  global curScriptFolder, isDebug, useJdkPath, useAdbPath, useBundleToolPath, useAabPath, useJksPath, useJksPwd, useJksAlias, useJksAliasPwd, selectDevice
+  osName = platform.system()
+  curScriptFolder = sys.path[0]
+  print('=====Stephen==googleAabPkgInstaller======>初始化入参:', sys.argv, osName, curScriptFolder)
   if len(sys.argv) > 1:
     for param in sys.argv:
       if param is not None:
@@ -178,7 +193,7 @@ def initExecuteFun():
     selectDevice = onlineDeviceAry[selectDevIndex]
     print('=====Stephen==googleAabPkgInstaller======>连接设备数为1,默认选择待安装的Android设备:',selectDevice)
   
-  selectSignTypeIndex = input('=====Stephen==googleAabPkgInstaller======>请输入编号选择是否需要使用对应签名文件解包AAB文件,如未选择正确可能解包失败!\n0.不使用签名\n1.使用公司签名文件\n2.使用本地签名文件\n')
+  selectSignTypeIndex = input('=====Stephen==googleAabPkgInstaller======>请输入编号选择是否需要使用对应签名文件解包AAB文件,如未选择正确可能解包失败或安装错误!\n0.不使用签名\n1.使用公司签名文件\n2.使用本地签名文件\n')
   try:
     selectSignTypeIndex = int(selectSignTypeIndex)
     if selectDevIndex < 0 or selectDevIndex >= 2:
@@ -218,7 +233,7 @@ def initExecuteFun():
                 waitSelectInfo = ''
                 for index, jksData in enumerate(jksDataInfo):
                   waitSelectInfo += str(index)+'.'+jksData['jksName']+'\n'
-                selectJksIndex = input('=====Stephen==googleAabPkgInstaller======>获取公司签名文件数为'+str(jksDataInfoNum)+',请输入编号选择使用一个签名文件\n'+waitSelectInfo)
+                selectJksIndex = input('=====Stephen==googleAabPkgInstaller======>获取公司签名文件数为'+str(jksDataInfoNum)+',请输入编号选择使用一个签名文件,如未选择正确可能解包失败或安装错误!\n'+waitSelectInfo)
                 try:
                   selectJksIndex = int(selectJksIndex)
                   if selectJksIndex < 0 or selectJksIndex >= jksDataInfoNum:
@@ -231,8 +246,9 @@ def initExecuteFun():
                 if downloadJksUrl is None:
                   print('=====Stephen==googleAabPkgInstaller======>选择使用的公司签名文件下载路径为空,请检查接口返回数据!')
                   sys.exit(0)
-                outputJksPath = os.getcwd() + os.sep + os.path.basename(urllib.parse.urlparse(downloadJksUrl).path)
-                downloadJksResult = requests.get(downloadJksUrl)
+                outputJksPath = curScriptFolder + os.sep + os.path.basename(urllib.parse.urlparse(downloadJksUrl).path)
+                print('=====Stephen==googleAabPkgInstaller======>选择使用的公司签名文件内容数据输出路径：'+outputJksPath+'=====>下载链接:'+downloadJksUrl)
+                downloadJksResult = requests.get(downloadJksUrl, stream=True, timeout=20)
                 with open(outputJksPath, "wb") as code:
                     code.write(downloadJksResult.content)
                 if os.path.exists(outputJksPath):
@@ -287,3 +303,4 @@ def initExecuteFun():
       
 #init
 initExecuteFun()
+#execute_shell_command("java -jar d:\GameDownload\\bundletool-all-1.15.1.jar install-apks --apks=d:\GameDownload\\app-googleplay2023-05-31_092354.apks --device-id=8CLX1QYTK")
